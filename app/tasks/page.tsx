@@ -10,6 +10,7 @@ export default function TasksPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', due_date: '', contact_id: '', lead_id: '' });
 
   async function load() {
@@ -27,14 +28,48 @@ export default function TasksPage() {
     load();
   }, []);
 
-  async function createTask(e: React.FormEvent) {
-    e.preventDefault();
-    await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, status: 'todo' })
+  function openCreate() {
+    setEditingId(null);
+    setForm({ title: '', due_date: '', contact_id: '', lead_id: '' });
+    setShowForm(true);
+  }
+
+  function openEdit(task: Task) {
+    setEditingId(task.id);
+    setForm({
+      title: task.title,
+      due_date: task.due_date.slice(0, 10),
+      contact_id: task.contact_id || '',
+      lead_id: task.lead_id || ''
     });
+    setShowForm(true);
+  }
+
+  async function saveTask(e: React.FormEvent) {
+    e.preventDefault();
+    const payload = {
+      title: form.title,
+      due_date: form.due_date,
+      contact_id: form.contact_id || null,
+      lead_id: form.lead_id || null
+    };
+
+    if (editingId) {
+      await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingId, ...payload })
+      });
+    } else {
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, status: 'todo' })
+      });
+    }
+
     setShowForm(false);
+    setEditingId(null);
     setForm({ title: '', due_date: '', contact_id: '', lead_id: '' });
     load();
   }
@@ -58,7 +93,7 @@ export default function TasksPage() {
       <PageHeader title="Tasks" subtitle="Daily follow-ups with due dates." />
 
       {showForm && (
-        <form onSubmit={createTask} className="card mx-4 mb-4 space-y-3 md:mx-0">
+        <form onSubmit={saveTask} className="card mx-4 mb-4 space-y-3 md:mx-0">
           <input className="input" placeholder="Task title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <input className="input" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
           <details>
@@ -75,8 +110,8 @@ export default function TasksPage() {
             </div>
           </details>
           <div className="flex gap-2">
-            <button className="btn-primary" type="submit">Save Task</button>
-            <button className="btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-primary" type="submit">{editingId ? 'Update Task' : 'Save Task'}</button>
+            <button className="btn-secondary" type="button" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</button>
           </div>
         </form>
       )}
@@ -95,13 +130,14 @@ export default function TasksPage() {
               >
                 {task.status === 'done' ? 'Done' : 'Todo'}
               </button>
+              <button className="btn-secondary" onClick={() => openEdit(task)}>Edit</button>
               <button className="btn-secondary" onClick={() => deleteTask(task.id)}>Delete</button>
             </div>
           </article>
         ))}
       </div>
 
-      <AddButton label="Task" onClick={() => setShowForm(true)} />
+      <AddButton label="Task" onClick={openCreate} />
     </>
   );
 }

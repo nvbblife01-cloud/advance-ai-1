@@ -11,6 +11,7 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(blankForm);
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
 
@@ -24,20 +25,51 @@ export default function ContactsPage() {
     load();
   }, []);
 
+  function openCreate() {
+    setEditingId(null);
+    setForm(blankForm);
+    setShowForm(true);
+  }
+
+  function openEdit(contact: Contact) {
+    setEditingId(contact.id);
+    setForm({
+      name: contact.name,
+      phone: contact.phone || '',
+      email: contact.email || '',
+      company: contact.company || '',
+      source: contact.source || '',
+      tags: contact.tags?.join(', ') || ''
+    });
+    setShowForm(true);
+  }
+
   async function submitContact(e: React.FormEvent) {
     e.preventDefault();
-    await fetch('/api/contacts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        tags: form.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean)
-      })
-    });
+    const payload = {
+      ...form,
+      tags: form.tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+    };
+
+    if (editingId) {
+      await fetch('/api/contacts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingId, ...payload })
+      });
+    } else {
+      await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
     setForm(blankForm);
+    setEditingId(null);
     setShowForm(false);
     load();
   }
@@ -77,8 +109,8 @@ export default function ContactsPage() {
             </div>
           </details>
           <div className="flex gap-2">
-            <button className="btn-primary" type="submit">Save Contact</button>
-            <button className="btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-primary" type="submit">{editingId ? 'Update Contact' : 'Save Contact'}</button>
+            <button className="btn-secondary" type="button" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</button>
           </div>
         </form>
       )}
@@ -94,7 +126,10 @@ export default function ContactsPage() {
                   <p className="text-sm text-slate-600">{contact.company || 'No company'} · {contact.email || 'No email'}</p>
                   <p className="text-xs text-slate-500">Tags: {contact.tags?.join(', ') || 'none'}</p>
                 </div>
-                <button className="btn-secondary" onClick={() => deleteContact(contact.id)}>Delete</button>
+                <div className="flex gap-2">
+                  <button className="btn-secondary" onClick={() => openEdit(contact)}>Edit</button>
+                  <button className="btn-secondary" onClick={() => deleteContact(contact.id)}>Delete</button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -121,7 +156,7 @@ export default function ContactsPage() {
         })}
       </div>
 
-      <AddButton label="Contact" onClick={() => setShowForm(true)} />
+      <AddButton label="Contact" onClick={openCreate} />
     </>
   );
 }

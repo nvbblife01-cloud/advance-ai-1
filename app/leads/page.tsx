@@ -11,6 +11,7 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', contact_id: '', stage: 'New' as LeadStage, value: '' });
 
   async function load() {
@@ -23,14 +24,43 @@ export default function LeadsPage() {
     load();
   }, []);
 
-  async function createLead(e: React.FormEvent) {
-    e.preventDefault();
-    await fetch('/api/leads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, value: form.value ? Number(form.value) : null })
+  function openCreate() {
+    setEditingId(null);
+    setForm({ title: '', contact_id: '', stage: 'New', value: '' });
+    setShowForm(true);
+  }
+
+  function openEdit(lead: Lead) {
+    setEditingId(lead.id);
+    setForm({
+      title: lead.title,
+      contact_id: lead.contact_id,
+      stage: lead.stage,
+      value: lead.value ? String(lead.value) : ''
     });
+    setShowForm(true);
+  }
+
+  async function saveLead(e: React.FormEvent) {
+    e.preventDefault();
+    const payload = { ...form, value: form.value ? Number(form.value) : null };
+
+    if (editingId) {
+      await fetch('/api/leads', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingId, ...payload })
+      });
+    } else {
+      await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
     setShowForm(false);
+    setEditingId(null);
     setForm({ title: '', contact_id: '', stage: 'New', value: '' });
     load();
   }
@@ -54,7 +84,7 @@ export default function LeadsPage() {
       <PageHeader title="Leads Pipeline" subtitle="Tap a stage to move deals quickly." />
 
       {showForm && (
-        <form onSubmit={createLead} className="card mx-4 mb-4 space-y-3 md:mx-0">
+        <form onSubmit={saveLead} className="card mx-4 mb-4 space-y-3 md:mx-0">
           <input className="input" placeholder="Lead title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           <select className="input" value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })} required>
             <option value="">Select contact</option>
@@ -71,8 +101,8 @@ export default function LeadsPage() {
             <input className="input" placeholder="Value (optional)" type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
           </div>
           <div className="flex gap-2">
-            <button className="btn-primary" type="submit">Save Lead</button>
-            <button className="btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="btn-primary" type="submit">{editingId ? 'Update Lead' : 'Save Lead'}</button>
+            <button className="btn-secondary" type="button" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</button>
           </div>
         </form>
       )}
@@ -85,7 +115,10 @@ export default function LeadsPage() {
                 <h2 className="text-lg font-semibold">{lead.title}</h2>
                 <p className="text-sm text-slate-600">{lead.contact?.name || 'No contact'} · {lead.stage}</p>
               </div>
-              <button className="btn-secondary" onClick={() => deleteLead(lead.id)}>Delete</button>
+              <div className="flex gap-2">
+                <button className="btn-secondary" onClick={() => openEdit(lead)}>Edit</button>
+                <button className="btn-secondary" onClick={() => deleteLead(lead.id)}>Delete</button>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {stages.map((stage) => (
@@ -104,7 +137,7 @@ export default function LeadsPage() {
         ))}
       </div>
 
-      <AddButton label="Lead" onClick={() => setShowForm(true)} />
+      <AddButton label="Lead" onClick={openCreate} />
     </>
   );
 }

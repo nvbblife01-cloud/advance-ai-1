@@ -66,9 +66,9 @@ npm install
 
 ### What is included
 - **Login**: classroom shared password gate (`/login` + `/api/login`)
-- **Contacts**: create/delete contacts + notes timeline
-- **Leads**: create/delete leads + one-tap stage changes
-- **Tasks**: create/delete tasks + todo/done toggle
+- **Contacts**: create/edit/delete contacts + notes timeline
+- **Leads**: create/edit/delete leads + one-tap stage changes
+- **Tasks**: create/edit/delete tasks + todo/done toggle
 - **Dashboard**: KPI cards from `/api/dashboard`
 
 ### API endpoints
@@ -144,14 +144,14 @@ npm run dev
 5. Contacts list loads from seeded data.
 6. Create contact with required fields only.
 7. Create contact with optional fields and tags.
-8. Delete a contact.
+8. Edit then delete a contact.
 9. Add note to contact timeline.
 10. Leads list loads and shows stage.
 11. Create a lead linked to a contact.
 12. Tap stage button to move lead stage.
 13. Tasks list loads sorted by due date.
 14. Create task linked to contact or lead.
-15. Toggle task `todo/done` and verify update.
+15. Edit a task then toggle `todo/done` and verify update.
 
 ---
 

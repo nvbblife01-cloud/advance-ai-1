@@ -13,6 +13,10 @@ const items = [
 export function BottomNav() {
   const pathname = usePathname();
 
+  if (pathname === '/login') {
+    return null;
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white md:hidden">
       <ul className="mx-auto grid max-w-xl grid-cols-4">
